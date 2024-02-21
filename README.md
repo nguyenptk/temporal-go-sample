@@ -1,2 +1,2 @@
 # temporal-go-sample
-A Go sample for Temporal workflow with signal handling
+A Go ft. Docker sample for Temporal workflow with signal handling
