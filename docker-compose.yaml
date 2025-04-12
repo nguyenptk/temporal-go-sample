@@ -1,59 +1,75 @@
-version: "3.5"
+version: "3.7"
 services:
   postgresql:
     container_name: temporal-postgresql
+    image: postgres:12
     environment:
       POSTGRES_PASSWORD: temporal
       POSTGRES_USER: temporal
-    image: postgres:latest
     networks:
       - temporal-network
     expose:
-      - 5432
+      - "5432"
     volumes:
-      - /var/lib/postgresql/data
+      - postgresql_data:/var/lib/postgresql/data
+    restart: always
+
   temporal:
     container_name: temporal
+    image: temporalio/auto-setup:latest
     depends_on:
       - postgresql
     environment:
-      - DB=postgresql
+      - DB=postgres12                # Updated to a supported driver
       - DB_PORT=5432
       - POSTGRES_USER=temporal
       - POSTGRES_PWD=temporal
-      - POSTGRES_SEEDS=postgresql
-    image: temporalio/auto-setup:latest
+      - POSTGRES_SEEDS=temporal-postgresql  # Uses the container name of the Postgres service
     networks:
       - temporal-network
     ports:
-      - 7233:7233
+      - "7233:7233"
     labels:
       kompose.volume.type: configMap
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   temporal-admin-tools:
     container_name: temporal-admin-tools
+    image: temporalio/admin-tools:latest
     depends_on:
       - temporal
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
       - TEMPORAL_CLI_ADDRESS=temporal:7233
-    image: temporalio/admin-tools:latest
     networks:
       - temporal-network
     stdin_open: true
     tty: true
+    restart: always
+
   temporal-ui:
     container_name: temporal-ui
+    image: temporalio/ui:latest
     depends_on:
       - temporal
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
       - TEMPORAL_CORS_ORIGINS=http://localhost:3000
-    image: temporalio/ui:latest
     networks:
       - temporal-network
     ports:
-      - 8080:8080
+      - "8080:8080"
+    restart: always
+
 networks:
   temporal-network:
     driver: bridge
     name: temporal-network
+
+volumes:
+  postgresql_data:
